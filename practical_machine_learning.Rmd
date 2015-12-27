@@ -1,0 +1,66 @@
+---
+title: "Practical Machine Learning project"
+author: "BZ"
+date: "December 27, 2015"
+output: html_document
+---
+#Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+#Data
+The training data for this project are available here: 
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+The test data are available here: 
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+##Read in training and testing data from the URL provided and split into testing and training datasets
+
+```{r, echo=TRUE, cache=TRUE}
+install.packages("caret", repos="http://cran.rstudio.com/")
+install.packages("rpart", repos="http://cran.rstudio.com/")
+install.packages("rpart.plot", repos="http://cran.rstudio.com/")
+install.packages("RColorBrewer", repos="http://cran.rstudio.com/")
+install.packages("rattle", repos="http://cran.rstudio.com/")
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+
+```
+```{r, echo=TRUE, cache=TRUE}
+training <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"), na.strings=c("#DIV/0!"," ","NA"))
+testing <- read.csv(url("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"), na.strings=c("#DIV/0!"," ","NA"))
+traindt <- createDataPartition(y=training$classe, p=0.6, list =FALSE)
+trainSet <-training[traindt, ]
+testSet <- training[-traindt, ]
+```
+
+
+##To clean the data, some transformations were performed
+```{r, echo=TRUE, cache=TRUE}
+datatrans1 <-nearZeroVar(trainSet, saveMetrics =TRUE)
+trainSet <- trainSet[c(-1)]
+traintrans2 <- trainSet
+for (i in 1:length(trainSet))
+  {if(sum(is.na(trainSet[, i])) /nrow(trainSet) >=.5) {
+    for (j in 1:length(traintrans2)) { if (length(grep(names(trainSet[i]), names(traintrans2)[j])) ==1) {traintrans2 <- traintrans2[, -j]}}}}
+```
+
+##Decision Tree
+```{r, echo=TRUE, cache=TRUE}
+model1 <-rpart(classe ~ ., data = traintrans2, method ="class")
+fancyRpartPlot(model1)
+pred <- predict(model1, testSet, type ="class")
+library(caret)
+confusionMatrix(pred, testSet$classe)
+```
+##Random Forest
+```{r, echo=TRUE, cache=TRUE}
+library(randomForest)
+model2 <- randomForest(classe ~., data=traintrans2)
+pred2 <- predict(model2, testSet, type ="class")
+library(caret)
+confusionMatrix(pred2, testSet$classe)
+```
+## Random Forest is a good fit based on the statistics output
